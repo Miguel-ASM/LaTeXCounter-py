@@ -5,6 +5,7 @@ from matplotlib import pyplot as plt
 
 # Auxiliar Methods
 
+# IGNORE COMMENTS
 def ignoreComments(line):
     """
     This function returns the part of one line string 'line' that it is not commented.
@@ -31,13 +32,14 @@ def ignoreComments(line):
     else:
         return temp[0:cut].strip()
 
-
+# REMOVE INLINE MATH
 def removeInLineMath(line):
     """
     This function removes the inline math in the one line string 'line'
     """
     return re.sub( r'\$.*?\$', '', line ).strip()
 
+# REMOVE INLINE COMMANDS
 def removeInLineCommands(line):
     """
     This function removes the LaTeX commands in the one line string 'line'.
@@ -45,7 +47,7 @@ def removeInLineCommands(line):
     """
     return re.sub( r'\\\S+\{?.*?\}?', '', line ).strip()
 
-
+# REMOVE INLINE MATH AND COMMANDS
 def removeInlineMathAndCommands(line):
     """
     This function removes first the inline math and then the LaTeX commands in the
@@ -53,7 +55,15 @@ def removeInlineMathAndCommands(line):
     """
     return removeInLineCommands( removeInLineMath( line ) )
 
+# RETURN THE WORDS IN THE LINE (in lower case)
+def returnWords(line):
+    words = re.findall( r'\b\w+\b' , line ) #words in the line
 
+    #return the words in lowercase
+    return list( map( lambda s: s.lower(), words ) )
+
+
+# CHECK IF IS THE START OF AN ENVIRONMENT
 def isEnvBegin(line):
     """
     This function returns True if the one line string 'line' is the
@@ -61,6 +71,7 @@ def isEnvBegin(line):
     """
     return line.lstrip().startswith(r'\begin')
 
+# CHECK IF IT IS THE END OF AN ENVIRONMENT
 def isEnvEnd(line):
     """
     This function returns True if the one line string 'line'
@@ -68,27 +79,29 @@ def isEnvEnd(line):
     """
     return line.lstrip().startswith(r'\end')
 
+# SKIP THE ENVIRONMENTS
 def skipEnv(handle):
     """
     This function takes as argument 'handle', which is a handle to the
     .tex source file and ignores all the lines inside an environment
     until the '\end' command is find. This function takes also into account
-    the possibility of nested environments.
+    the possibility of nested environments. At the end of this function the
+    handle points to the first line after the environment end
     """
 
     #depth of the environment recursion, if it is 0 whe are outside of all the nested environments
     recursion = 1
 
     while recursion > 0:
-        line = handle.readline()
+        line = next(handle)
         if isEnvBegin(line):
             recursion +=1
         elif isEnvEnd(line):
             recursion -=1
-    return
+    return next(handle)
 
-
-def skipPreamble(handle):
+# GO TO THE START OF THE DOCUMENT
+def goToStartDocument(handle):
     """
     This function takes as argument 'handle', which is a handle to the
     .tex source file and ignores all the lines up to (including it) the
@@ -124,15 +137,57 @@ def countAndMakeHistogram(fileName,nEntries=20):
     f = open(fileName,'r')
 
     # Go to the first line after '\begin{document}'
-    skipPreamble(f)
-    print(next(f).rstrip())
+    goToStartDocument(f)
+    line = next(f).rstrip()
+    print(line)
 
     # Now, loop until we arrive to the '\end{document}'
-    while not next(f).lstrip().startswith(r'\end{document}'):
-        pass
+    while not line.lstrip().startswith(r'\end{document}'):
+        # PROCESSING THE LINES
+
+        #skip environments
+        if isEnvBegin(line):
+            line = skipEnv(f)
+            continue
+
+        #remove comments
+        line = ignoreComments(line)
+
+        #remove Inline math and commands
+        line = removeInlineMathAndCommands(line)
+
+        #get the words from the processed line
+        line_words = returnWords(line)
+
+        #Update the dictionary that contains the counts
+        for w in line_words:
+            words[w] = words.get(w,0) + 1
+
+        #go to following line
+        line = next(f)
 
 
-    print(next(f).rstrip())
+    line = next(f).rstrip()
+    print(line)
+    f.close()
+
+    #file to store the words
+    f = open('results.txt','w')
+    word_count = 0
+    for key in sorted(words, key = lambda k:(-words[k],k)):
+        line = '{0}: {1}\n'.format(key,words[key])
+        f.write(line)
+        word_count += words[key]
+
+    print(word_count)
+    f.close()
+
+    sorted_counts = sorted(list(words.values()),reverse=True)
+    print(sorted_counts)
+    fig, axes = plt.subplots()
+    axes.scatter(range(len(sorted_counts)),sorted_counts)
+    axes.set_xlim(0,25)
+    fig.savefig('results.eps')
 
     return
 
