@@ -173,33 +173,30 @@ def analyzeTeXFile(file,words_dict,create_output_file = False):
     """
 
     #Open file
-    f = open(file,'r')
+    with open(file,'r') as f:
+        # Go to the first line after '\begin{document}' and read it
+        goToStartDocument(f)
+        line = f.readline().rstrip()
 
-    # Go to the first line after '\begin{document}' and read it
-    goToStartDocument(f)
-    line = f.readline().rstrip()
+        # dictionary containing the frequency of words in this text file
+        words = dict()
 
-    # dictionary containing the frequency of words in this text file
-    words = dict()
+        # Now, loop until we arrive to the '\end{document}'
+        while not line.lstrip().startswith(r'\end{document}'):
+            #skip environments
+            if isEnvBegin(line):
+                line = skipEnv(f)
+                continue
 
-    # Now, loop until we arrive to the '\end{document}'
-    while not line.lstrip().startswith(r'\end{document}'):
-        #skip environments
-        if isEnvBegin(line):
-            line = skipEnv(f)
-            continue
+            #process line and get the words
+            line_words = processAndReturnWords(line)
 
-        #process line and get the words
-        line_words = processAndReturnWords(line)
+            #Update the dictionary that contains the counts
+            updateWordsDict(line_words,words)
 
-        #Update the dictionary that contains the counts
-        updateWordsDict(line_words,words)
+            #go to following line
+            line = f.readline()
 
-        #go to following line
-        line = f.readline()
-
-    #Close file
-    f.close()
 
     # Update the external dictionary
     for key in words:
@@ -208,13 +205,11 @@ def analyzeTeXFile(file,words_dict,create_output_file = False):
     # Create file for the results if true
     if create_output_file:
         f_out_name = '{}__counts.txt'.format( re.findall(r'(\S+).tex',file)[0] )
-        f_out = open(f_out_name,'w')
-        for key in sorted(words, key = lambda k:(-words[k],k)):
-            line = '{0}: {1}\n'.format(key,words[key])
-            f_out.write(line)
 
-        # print(word_count)
-        f_out.close()
+        with open(f_out_name,'w') as f_out:
+            for key in sorted(words, key = lambda k:(-words[k],k)):
+                line = '{0}: {1}\n'.format(key,words[key])
+                f_out.write(line)
 
     return
 
