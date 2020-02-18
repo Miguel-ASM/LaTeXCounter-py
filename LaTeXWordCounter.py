@@ -2,8 +2,68 @@ import re
 import sys
 from matplotlib import pyplot as plt
 
+###################################################################
+#        FUNCTIONS TO IGNORE PREAMBLES OF THE .TEX AND ENVIRONMENTS
 
-# Auxiliar Methods
+# CHECK IF LINE IS THE START OF AN ENVIRONMENT
+def isEnvBegin(line):
+    """
+    This function returns True if the one line string 'line' is the
+    opening of an environment. Otherwise False.
+    """
+    return line.lstrip().startswith(r'\begin')
+
+# CHECK IF LINE IS THE END OF AN ENVIRONMENT
+def isEnvEnd(line):
+    """
+    This function returns True if the one line string 'line'
+    is the closing of an environment. Otherwise False.
+    """
+    return line.lstrip().startswith(r'\end')
+
+# SKIP THE ENVIRONMENTS
+def skipEnv(handle):
+    """
+    This function takes as argument 'handle', which is a handle to the
+    .tex source file and ignores all the lines inside an environment
+    until the '\end' command is find. This function takes also into account
+    the possibility of nested environments. At the end of this function the
+    handle points to the first line after the environment end
+    """
+
+    # Depth of the environment recursion,
+    # if it is 0 we are outside of all the
+    # nested environments and the function
+    # returns.
+    recursion = 1
+
+    while recursion > 0:
+        line = handle.readline()
+        if isEnvBegin(line):
+            recursion +=1
+        elif isEnvEnd(line):
+            recursion -=1
+    return handle.readline()
+
+# GO TO THE START OF THE DOCUMENT
+def goToStartDocument(handle):
+    """
+    This function takes as argument 'handle', which is a handle to the
+    .tex source file and ignores all the lines up to (including it) the
+    line that has the '\begin{document}' command. The handle ends up
+    pointing to the first line after '\begin{document}'
+    """
+
+    # If the handle is not at the start
+    # of the file, move it there.
+    if handle.tell(): handle.seek(0)
+
+    while not handle.readline().lstrip().startswith(r'\begin{document}'):
+        pass
+    return
+
+###################################################################
+#            FUNCTIONS TO PROCESS VALID LINES (outside environments)
 
 # IGNORE COMMENTS
 def ignoreComments(line):
@@ -57,66 +117,108 @@ def removeInlineMathAndCommands(line):
 
 # RETURN THE WORDS IN THE LINE (in lower case)
 def returnWords(line):
+    """
+    This function returns the words of a processed valid line as list
+    of strings.
+    """
+    #extract the words
     words = re.findall( r'\b\w+\b' , line ) #words in the line
 
     #return the words in lowercase
     return list( map( lambda s: s.lower(), words ) )
 
+# PROCEES THE LINE AND RETURN WORDS (in lower case)
+def processAndReturnWords(line):
+    """
+    This function processes (ignore comments, remove math and commands)
+    a valid (non environment) line and returns the words as list
+    of strings.
+    """
+    #remove comments
+    line = ignoreComments(line)
 
-# CHECK IF IS THE START OF AN ENVIRONMENT
-def isEnvBegin(line):
-    """
-    This function returns True if the one line string 'line' is the
-    opening of an environment. Otherwise False.
-    """
-    return line.lstrip().startswith(r'\begin')
+    #remove Inline math and commands
+    line = removeInlineMathAndCommands(line)
 
-# CHECK IF IT IS THE END OF AN ENVIRONMENT
-def isEnvEnd(line):
-    """
-    This function returns True if the one line string 'line'
-    is the closing of an environment. Otherwise False.
-    """
-    return line.lstrip().startswith(r'\end')
+    #return the words in lowercase
+    return returnWords(line)
 
-# SKIP THE ENVIRONMENTS
-def skipEnv(handle):
-    """
-    This function takes as argument 'handle', which is a handle to the
-    .tex source file and ignores all the lines inside an environment
-    until the '\end' command is find. This function takes also into account
-    the possibility of nested environments. At the end of this function the
-    handle points to the first line after the environment end
-    """
 
-    #depth of the environment recursion, if it is 0 whe are outside of all the nested environments
-    recursion = 1
+###############################################################################
+#              FUNCTIONS TO COUNT WORD OCCURENCES
 
-    while recursion > 0:
-        line = next(handle)
-        if isEnvBegin(line):
-            recursion +=1
-        elif isEnvEnd(line):
-            recursion -=1
-    return next(handle)
-
-# GO TO THE START OF THE DOCUMENT
-def goToStartDocument(handle):
+def updateWordsDict(words_array,words_dict):
     """
-    This function takes as argument 'handle', which is a handle to the
-    .tex source file and ignores all the lines up to (including it) the
-    line that has the '\begin{document}' command. The handle ends up
-    pointing to the first line after '\begin{document}'
+    This function update the dictionary "words_dict" with the words
+    in the array "words_array".
     """
 
-    # If the handle is not at the start
-    # of the file, move it there.
-    if handle.tell(): handle.seek(0)
-
-    while not next(handle).lstrip().startswith(r'\begin{document}'):
-        pass
+    for word in words_array:
+        words_dict[word] = words_dict.get(word,0) + 1
     return
 
+
+def analyzeTeXFile(file,words_dict,create_output_file = False):
+    """
+    This function takes as input "file", a path to a .tex file, and performs
+    the word count. The "words_dict" dictionary is updated with the counts.
+    "create_output_file" default value is False. If True, then the results of
+    analyzing the .tex file are stored in a file named "file.txt" in the format
+    word1: counts_word1
+    word2: counts_word2
+    .
+    .
+    The lines in the output file, are sorted by frequency (descending order) and
+    alphabetically.
+    """
+
+    #Open file
+    f = open(file,'r')
+
+    # Go to the first line after '\begin{document}' and read it
+    goToStartDocument(f)
+    line = f.readline().rstrip()
+
+    # dictionary containing the frequency of words in this text file
+    words = dict()
+
+    # Now, loop until we arrive to the '\end{document}'
+    while not line.lstrip().startswith(r'\end{document}'):
+        #skip environments
+        if isEnvBegin(line):
+            line = skipEnv(f)
+            continue
+
+        #process line and get the words
+        line_words = processAndReturnWords(line)
+
+        #Update the dictionary that contains the counts
+        updateWordsDict(line_words,words)
+
+        #go to following line
+        line = f.readline()
+
+    #Close file
+    f.close()
+
+    # Update the external dictionary
+    for key in words:
+        words_dict[key] = words_dict.get(key,0) + words[key]
+
+    # Create file for the results if true
+    if create_output_file:
+        f_out_name = '{}__counts.txt'.format( re.findall(r'(\S+).tex',file)[0] )
+        f_out = open(f_out_name,'w')
+        for key in sorted(words, key = lambda k:(-words[k],k)):
+            line = '{0}: {1}\n'.format(key,words[key])
+            f_out.write(line)
+
+        # print(word_count)
+        f_out.close()
+
+    return
+
+##############################################################################
 # main method
 def countAndMakeHistogram(fileName,nEntries=20):
     """
@@ -138,7 +240,7 @@ def countAndMakeHistogram(fileName,nEntries=20):
 
     # Go to the first line after '\begin{document}'
     goToStartDocument(f)
-    line = next(f).rstrip()
+    line = f.readline().rstrip()
     print(line)
 
     # Now, loop until we arrive to the '\end{document}'
@@ -150,24 +252,17 @@ def countAndMakeHistogram(fileName,nEntries=20):
             line = skipEnv(f)
             continue
 
-        #remove comments
-        line = ignoreComments(line)
-
-        #remove Inline math and commands
-        line = removeInlineMathAndCommands(line)
-
-        #get the words from the processed line
-        line_words = returnWords(line)
+        #process line and get the words
+        line_words = processAndReturnWords(line)
 
         #Update the dictionary that contains the counts
-        for w in line_words:
-            words[w] = words.get(w,0) + 1
+        updateWordsDict(line_words,words)
 
         #go to following line
-        line = next(f)
+        line = f.readline()
 
 
-    line = next(f).rstrip()
+    line = f.readline().rstrip()
     print(line)
     f.close()
 
@@ -179,11 +274,11 @@ def countAndMakeHistogram(fileName,nEntries=20):
         f.write(line)
         word_count += words[key]
 
-    print(word_count)
+    # print(word_count)
     f.close()
 
     sorted_counts = sorted(list(words.values()),reverse=True)
-    print(sorted_counts)
+    # print(sorted_counts)
     fig, axes = plt.subplots()
     axes.scatter(range(len(sorted_counts)),sorted_counts)
     axes.set_xlim(0,25)
@@ -198,23 +293,3 @@ if __name__=='__main__':
     fileName, nEntries = sys.argv[1:3]
 
     countAndMakeHistogram(fileName,nEntries)
-
-
-    # words = []
-    #
-    # for line in f:
-    #     #ignore the comments
-    #     line = ignoreComments(line)
-    #
-    #     #ignore environments
-    #     if isEnvBegin(line):
-    #         skipEnv(f)
-    #     else:
-    #         #remove the equations and commands
-    #         line = removeInlineMathAndCommands(line)
-    #
-    #         #add the words to the array words
-    #         words.extend(line.split())
-    #
-    # f.close()
-    # print(words)
