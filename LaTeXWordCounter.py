@@ -60,7 +60,7 @@ def goToStartDocument(handle):
 
     line = handle.readline().lstrip()
 
-    while not line.startswith(r'\begin{document}') or line > '':
+    while not line.startswith(r'\begin{document}') and line > '':
         line = handle.readline().lstrip()
     return line
 
