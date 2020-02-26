@@ -58,10 +58,11 @@ def goToStartDocument(handle):
     # of the file, move it there.
     if handle.tell(): handle.seek(0)
 
-    line = handle.readline().lstrip()
+    line = handle.readline()
 
-    while (not line.startswith(r'\begin{document}') ) and line > '':
-        line = handle.readline().lstrip()
+    while not line.strip().startswith(r'\begin{document}') and line > '':
+        line = handle.readline()
+    print(line)
     return line
 
 ###################################################################
@@ -176,19 +177,19 @@ def analyzeTeXFile(file,words_dict,create_output_file = False):
 
     #Open file
     with open(file,'r') as f:
-        # Go to the first line after '\begin{document}' and read it
-        goToStartDocument(f)
-        line = f.readline().rstrip()
-        #return if start of document was never found
-        if not line:
+        print(f.name)
+        # Go to the first line after '\begin{document}' (if it exists) and read it
+        if not goToStartDocument(f):
             print('Invalid TeX file: no start document command')
             return
+        line = f.readline()
 
         # dictionary containing the frequency of words in this text file
         words = dict()
 
         # Now, loop until we arrive to the '\end{document}'
         while not line.lstrip().startswith(r'\end{document}'):
+            print(line)
             #skip environments
             if isEnvBegin(line):
                 line = skipEnv(f)
@@ -199,6 +200,7 @@ def analyzeTeXFile(file,words_dict,create_output_file = False):
 
             #Update the dictionary that contains the counts
             updateWordsDict(line_words,words)
+
 
             #go to following line
             line = f.readline()
