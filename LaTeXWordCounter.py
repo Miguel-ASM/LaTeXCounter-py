@@ -58,9 +58,11 @@ def goToStartDocument(handle):
     # of the file, move it there.
     if handle.tell(): handle.seek(0)
 
-    while not handle.readline().lstrip().startswith(r'\begin{document}'):
-        pass
-    return
+    line = handle.readline().lstrip()
+
+    while not line.startswith(r'\begin{document}') or line > '':
+        line = handle.readline().lstrip()
+    return line
 
 ###################################################################
 #            FUNCTIONS TO PROCESS VALID LINES (outside environments)
@@ -177,6 +179,10 @@ def analyzeTeXFile(file,words_dict,create_output_file = False):
         # Go to the first line after '\begin{document}' and read it
         goToStartDocument(f)
         line = f.readline().rstrip()
+        #return if start of document was never found
+        if not line:
+            print('Invalid TeX file: no start document command')
+            return
 
         # dictionary containing the frequency of words in this text file
         words = dict()
