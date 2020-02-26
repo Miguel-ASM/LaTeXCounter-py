@@ -65,6 +65,25 @@ def goToStartDocument(handle):
     print(line)
     return line
 
+def returnDocumentBody(text):
+    """
+    This function takes as argument the string containing the text of
+    the .tex source file and returns the string containing the text
+    between '\begin{document}' and '\begin{document}'
+    """
+    match = re.search(r'\\begin{document}([\s\S]*?)\\end{document}', text)
+    if match:
+        return match.group(1).strip()
+    return ''
+
+def remove_environment(text, environment):
+  """
+  returns the text with all the  '\\begin{environment}*\\end{environment}'
+  removed'.
+  """
+  return re.sub(
+      r'\\begin{' + environment + r'}[\s\S]*?\\end{' + environment + r'}',
+      '', text)
 ###################################################################
 #            FUNCTIONS TO PROCESS VALID LINES (outside environments)
 
