@@ -98,7 +98,7 @@ def _updateWordsDict(words_array,words_dict):
     return
 
 
-def analyzeTeXFile(file,words_external,create_output_file = False):
+def analyzeTeXFile(file,words_external,create_output_file = False,verbose=False):
     """
     This function takes as input "file", a path to a .tex file, and performs
     the word count. The "words_external" dictionary is updated with the counts.
@@ -141,7 +141,8 @@ def analyzeTeXFile(file,words_external,create_output_file = False):
                 for key in sorted(words_internal, key = lambda k:(-words_internal[k],k)):
                     line = '{0}: {1}\n'.format(key,words_internal[key])
                     f_out.write(line)
-    print(Message)
+    if verbose:
+        print(Message)
     return
 
 ##############################################################################
