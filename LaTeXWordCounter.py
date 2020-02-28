@@ -111,7 +111,7 @@ def analyzeTeXFile(file,words_external,create_output_file = False):
     The lines in the output file, are sorted by frequency (descending order) and
     alphabetically.
     """
-    Message='ERROR: file '+ file + ' could not be read.'
+    Message='ERROR: file '+ file + ' could not be opened.'
     #Open file
     with open(file,'r') as f:
         #extract content
