@@ -111,11 +111,12 @@ def analyzeTeXFile(file,words_external,create_output_file = False):
     The lines in the output file, are sorted by frequency (descending order) and
     alphabetically.
     """
-
+    Message='ERROR: file '+ file + ' could not be read.'
     #Open file
     with open(file,'r') as f:
         #extract content
         content = f.readlines()
+        Message='OK: file '+ file + ' was read correctly.'
         #remove comments
         content = _remove_all_comments(content)
         #find environments
@@ -140,11 +141,8 @@ def analyzeTeXFile(file,words_external,create_output_file = False):
                 for key in sorted(words_internal, key = lambda k:(-words_internal[k],k)):
                     line = '{0}: {1}\n'.format(key,words_internal[key])
                     f_out.write(line)
+    print(Message)
     return
 
 ##############################################################################
 # main method
-
-
-if __name__=='__main__':
-    print('WIP')
