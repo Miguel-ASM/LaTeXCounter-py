@@ -110,6 +110,8 @@ def analyzeTeXFile(file,words_external,create_output_file = False,verbose=False)
     .
     The lines in the output file, are sorted by frequency (descending order) and
     alphabetically.
+
+    Returns the dictionary of the words that have been found in the paper.
     """
     Message='ERROR: file '+ file + ' could not be opened.'
     #Open file
@@ -143,7 +145,7 @@ def analyzeTeXFile(file,words_external,create_output_file = False,verbose=False)
                     f_out.write(line)
     if verbose:
         print(Message)
-    return
+    return words_internal
 
 ##############################################################################
 # main method
