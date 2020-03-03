@@ -1,11 +1,8 @@
 name: analyze_arXiv_papers
-channels:
-  - defaults
 dependencies:
-  - numpy
-  - matplotlib
-  - jupyterlab
   - python=3.7
   - ipython
-prefix: /Users/miguel/opt/anaconda3/envs/analyze_arXiv_papers
-
+  - jupyterlab
+  - numpy
+  - matplotlib
+  - pandas
