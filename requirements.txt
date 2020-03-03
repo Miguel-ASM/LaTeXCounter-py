@@ -1,2 +1,0 @@
-arxiv
--e git+https://github.com/Miguel-ASM/TeX-counter.git#egg=texcounter
