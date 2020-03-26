@@ -128,3 +128,11 @@ dmypy.json
 # Mac OSX
 .DS_Store
 
+# Output files
+papers_withoutTeX.txt
+papers_withTeX.txt
+analyzed_papers.txt
+keywords.json
+query_results.json
+
+
