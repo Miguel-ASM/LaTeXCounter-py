@@ -134,5 +134,7 @@ papers_withTeX.txt
 analyzed_papers.txt
 keywords.json
 query_results.json
+paper_source_files/
+paper_TeX_files/
 
 
